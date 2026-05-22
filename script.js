@@ -1,9 +1,5 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHTqutKTumpQYfdE0GhCz0g2s8gdbWNJf-9GM1PwtOsAIL9trjam4H57c3PTbOQf4G/exec";
 
-const PRECIO_COMBO_USD = 5;
-
-let TASA_BCV = 0;
-
 let stockSabores = {
   "Dominó": 0,
   "Catira": 0,
@@ -14,9 +10,7 @@ let stockSabores = {
   "Coordinadores": 0
 };
 
-const sabores = ["Catira", "Pelúa", "Reina Pepiada", "Rumbera", "Akuai"];
-
-const form = document.getElementById("cajaForm");
+const sabores = ["Dominó", "Catira", "Pelúa", "Reina Pepiada", "Rumbera", "Akuai"];
 const coordinadorForm = document.getElementById("coordinadorForm");
 
 function setText(id, value) {
@@ -24,7 +18,7 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
-function mostrarModal(texto, titulo = "Caja Arefest") {
+function mostrarModal(texto, titulo = "Coordinadores Arefest") {
   setText("modalTitle", titulo);
   setText("modalText", texto);
   document.getElementById("modal").style.display = "grid";
@@ -34,48 +28,23 @@ function cerrarModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-function formatoUsd(n) {
-  return Number(n || 0).toFixed(2);
+function saborToId(sabor) {
+  return String(sabor)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
 }
 
-function formatoBs(n) {
-  return Number(n || 0).toLocaleString("es-VE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
+function renderSaboresCoordinador() {
+  const cont = document.getElementById("saboresCoordinador");
+  if (!cont) return;
 
-function cambiarVista(vista) {
-  const vistaVenta = document.getElementById("vistaVenta");
-  const vistaCoordinadores = document.getElementById("vistaCoordinadores");
-  const tabVenta = document.getElementById("tabVenta");
-  const tabCoordinadores = document.getElementById("tabCoordinadores");
-
-  if (vista === "coordinadores") {
-    vistaVenta.classList.add("hidden");
-    vistaCoordinadores.classList.remove("hidden");
-    tabVenta.classList.remove("active");
-    tabCoordinadores.classList.add("active");
-    cargarCoordinadoresDisponibles();
-    return;
-  }
-
-  vistaCoordinadores.classList.add("hidden");
-  vistaVenta.classList.remove("hidden");
-  tabCoordinadores.classList.remove("active");
-  tabVenta.classList.add("active");
-}
-
-function renderSabores() {
-  const cont = document.getElementById("sabores");
   cont.innerHTML = "";
 
   sabores.forEach(sabor => {
-    const id = sabor
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "-");
+    const id = `coord-${saborToId(sabor)}`;
+    const disponible = Number(stockSabores[sabor] || 0);
 
     const row = document.createElement("div");
     row.className = "flavor-row";
@@ -83,13 +52,13 @@ function renderSabores() {
     row.innerHTML = `
       <div>
         <strong>${sabor}</strong>
-        <small id="stock-${id}">Disponible: ${stockSabores[sabor] || 0}</small>
+        <small id="stock-${id}">Disponible: ${disponible}</small>
       </div>
 
       <div class="flavor-controls">
-        <button type="button" onclick="cambiarSabor('${id}', -1)">−</button>
-        <input id="${id}" data-sabor="${sabor}" value="0" readonly>
-        <button type="button" onclick="cambiarSabor('${id}', 1)">+</button>
+        <button type="button" onclick="cambiarSaborCoordinador('${id}', -1)">−</button>
+        <input id="${id}" data-sabor-coord="${sabor}" value="0" readonly>
+        <button type="button" onclick="cambiarSaborCoordinador('${id}', 1)">+</button>
       </div>
     `;
 
@@ -114,11 +83,9 @@ async function cargarStock() {
       "Coordinadores": Number(data.stock["Coordinadores"] || 0)
     };
 
-    setText("stock-domino", `${stockSabores["Dominó"]} disponibles`);
     setText("stock-coordinadores", `${stockSabores["Coordinadores"]} disponibles`);
-
-    renderSabores();
-    actualizarResumen();
+    renderSaboresCoordinador();
+    actualizarResumenCoordinador();
 
   } catch (error) {
     mostrarModal("No se pudo cargar el stock: " + error.message, "Error");
@@ -159,80 +126,69 @@ async function cargarCoordinadoresDisponibles() {
   }
 }
 
-async function cargarTasa() {
-  try {
-    const res = await fetch(`${WEB_APP_URL}?action=bcv`);
-    const data = await res.json();
-
-    if (data.ok && Number(data.tasa) > 0) {
-      TASA_BCV = Number(data.tasa);
-    }
-
-    actualizarResumen();
-
-  } catch {
-    TASA_BCV = 0;
-    actualizarResumen();
-  }
-}
-
-function cambiarCombos(cambio) {
-  const input = document.getElementById("combos");
-
+function cambiarArepasCoordinador(cambio) {
+  const input = document.getElementById("coord-arepas-total");
   let actual = Number(input.value || 1);
   let nuevo = actual + cambio;
 
   if (nuevo < 1) nuevo = 1;
 
-  if (nuevo > stockSabores["Dominó"]) {
-    mostrarModal(`Solo quedan ${stockSabores["Dominó"]} combo(s) disponibles.`);
-    nuevo = stockSabores["Dominó"];
+  if (nuevo > 2) {
+    mostrarModal("Solo puedes entregar máximo 2 arepas por coordinador: 1 incluida + 1 adicional.");
+    nuevo = 2;
   }
 
   input.value = nuevo;
-
-  resetSabores();
-  actualizarResumen();
+  resetSaboresCoordinador();
+  actualizarResumenCoordinador();
 }
 
-function resetSabores() {
-  document.querySelectorAll("[data-sabor]").forEach(input => {
+function resetSaboresCoordinador() {
+  document.querySelectorAll("[data-sabor-coord]").forEach(input => {
     input.value = 0;
   });
 }
 
-function obtenerSeleccionSabores() {
-  const inputs = document.querySelectorAll("[data-sabor]");
+function obtenerSeleccionSaboresCoordinador() {
+  const inputs = document.querySelectorAll("[data-sabor-coord]");
   let total = 0;
   const detalle = {};
+  const lista = [];
 
   inputs.forEach(input => {
-    const sabor = input.dataset.sabor;
+    const sabor = input.dataset.saborCoord;
     const cantidad = Number(input.value || 0);
 
     detalle[sabor] = cantidad;
     total += cantidad;
+
+    if (cantidad > 0) {
+      lista.push({ sabor, cantidad });
+    }
   });
 
-  return { total, detalle };
+  return { total, detalle, lista };
 }
 
-function cambiarSabor(id, cambio) {
+function cambiarSaborCoordinador(id, cambio) {
   const input = document.getElementById(id);
-  const sabor = input.dataset.sabor;
-  const combos = Number(document.getElementById("combos").value || 1);
-  const seleccion = obtenerSeleccionSabores();
+  if (!input) return;
+
+  const sabor = input.dataset.saborCoord;
+  const totalArepas = Number(document.getElementById("coord-arepas-total").value || 1);
+  const seleccion = obtenerSeleccionSaboresCoordinador();
 
   let actual = Number(input.value || 0);
+  const disponible = Number(stockSabores[sabor] || 0);
 
   if (cambio > 0) {
-    if (seleccion.total >= combos) {
-      mostrarModal(`Ya elegiste los ${combos} sabor(es) necesarios.`);
+    if (seleccion.total >= totalArepas) {
+      mostrarModal(`Ya seleccionaste las ${totalArepas} arepa(s) necesarias.`);
       return;
     }
 
-    if (actual >= Number(stockSabores[sabor] || 0)) {
-      mostrarModal(`No hay más stock de ${sabor}.`);
+    if (actual >= disponible) {
+      mostrarModal(`No hay más stock de ${sabor}. Disponible: ${disponible}.`);
       return;
     }
 
@@ -241,127 +197,27 @@ function cambiarSabor(id, cambio) {
     if (actual > 0) input.value = actual - 1;
   }
 
-  actualizarResumen();
+  actualizarResumenCoordinador();
 }
 
-function actualizarResumen() {
-  const combos = Number(document.getElementById("combos").value || 1);
-  const seleccion = obtenerSeleccionSabores();
+function actualizarResumenCoordinador() {
+  const totalArepas = Number(document.getElementById("coord-arepas-total")?.value || 1);
+  const seleccion = obtenerSeleccionSaboresCoordinador();
 
-  setText("saboresResumen", `Has seleccionado ${seleccion.total} de ${combos} sabor(es).`);
+  setText("saboresCoordResumen", `Has seleccionado ${seleccion.total} de ${totalArepas} arepa(s).`);
 
-  const totalUsd = combos * PRECIO_COMBO_USD;
-  const totalBs = totalUsd * TASA_BCV;
+  const resumen = seleccion.lista.length
+    ? seleccion.lista.map(item => `${item.sabor} x${item.cantidad}`).join(", ")
+    : "arepa a elección";
 
-  setText("totalUsd", formatoUsd(totalUsd));
-  setText("tasaBcv", TASA_BCV > 0 ? formatoBs(TASA_BCV) : "--");
-  setText("totalBs", TASA_BCV > 0 ? formatoBs(totalBs) : "--");
+  const adicional = totalArepas === 2 ? " + 1 arepa adicional" : "";
+  setText("beneficioTexto", `${totalArepas} arepa(s): ${resumen}${adicional} + Café x1 + Papelón con Limón x1`);
+
+  const resumenEl = document.getElementById("saboresCoordResumen");
+  if (resumenEl) {
+    resumenEl.style.color = seleccion.total === totalArepas ? "#1f9d55" : "#777";
+  }
 }
-
-function archivoABase64(file) {
-  return new Promise((resolve, reject) => {
-    if (!file) return resolve("");
-
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(String(reader.result).split(",")[1]);
-    reader.onerror = reject;
-
-    reader.readAsDataURL(file);
-  });
-}
-
-form.addEventListener("submit", async function(e) {
-  e.preventDefault();
-
-  const submit = document.querySelector("#cajaForm .submit");
-
-  const combos = Number(document.getElementById("combos").value || 1);
-  const seleccion = obtenerSeleccionSabores();
-
-  const nombre = document.getElementById("nombre").value.trim();
-  const cedula = document.getElementById("cedula").value.trim();
-  const whatsapp = document.getElementById("whatsapp").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const cajero = document.getElementById("cajero").value.trim();
-  const metodo = document.getElementById("metodo").value;
-  const referencia = document.getElementById("referencia").value.trim();
-  const capture = document.getElementById("capture").files[0];
-
-  if (!nombre) return mostrarModal("Falta el nombre del comprador.");
-  if (!cedula) return mostrarModal("Falta la cédula.");
-  if (!whatsapp) return mostrarModal("Falta el WhatsApp.");
-  if (!email) return mostrarModal("Falta el correo electrónico.");
-  if (!cajero) return mostrarModal("Falta el nombre del cajero.");
-  if (!metodo) return mostrarModal("Selecciona el método de pago.");
-
-  if (metodo !== "Efectivo $" && !referencia) {
-    return mostrarModal("Coloca la referencia del pago.");
-  }
-
-  if (seleccion.total !== combos) {
-    return mostrarModal(`Debes seleccionar ${combos} sabor(es). Actualmente seleccionaste ${seleccion.total}.`);
-  }
-
-  if (combos > stockSabores["Dominó"]) {
-    return mostrarModal(`No hay suficientes combos. Disponible: ${stockSabores["Dominó"]}.`);
-  }
-
-  try {
-    submit.disabled = true;
-    submit.textContent = "Registrando...";
-
-    const captureBase64 = await archivoABase64(capture);
-
-    const datos = new URLSearchParams();
-
-    datos.append("action", "venta_dia");
-    datos.append("nombre", nombre);
-    datos.append("cedula", cedula);
-    datos.append("whatsapp", whatsapp);
-    datos.append("email", email);
-    datos.append("cajero", cajero);
-    datos.append("combos", combos);
-
-    datos.append("catira", seleccion.detalle["Catira"] || 0);
-    datos.append("pelua", seleccion.detalle["Pelúa"] || 0);
-    datos.append("reina", seleccion.detalle["Reina Pepiada"] || 0);
-    datos.append("rumbera", seleccion.detalle["Rumbera"] || 0);
-    datos.append("akuai", seleccion.detalle["Akuai"] || 0);
-
-    datos.append("bebida", `Café x${combos}, Papelón con Limón x${combos}`);
-    datos.append("metodo", metodo);
-    datos.append("referencia", referencia);
-    datos.append("capture_base64", captureBase64);
-
-    const res = await fetch(WEB_APP_URL, {
-      method: "POST",
-      body: datos
-    });
-
-    const data = await res.json();
-
-    if (!data.ok) throw new Error(data.error || "No se pudo registrar.");
-
-    mostrarModal(
-      `Venta registrada correctamente.\nTotal: $${formatoUsd(data.total_usd)} / Bs ${formatoBs(data.total_bs)}`,
-      "Venta lista"
-    );
-
-    form.reset();
-    document.getElementById("combos").value = 1;
-    resetSabores();
-
-    await cargarStock();
-    actualizarResumen();
-
-  } catch (error) {
-    mostrarModal(error.message, "No se pudo registrar");
-  } finally {
-    submit.disabled = false;
-    submit.textContent = "Registrar venta y entregar";
-  }
-});
 
 coordinadorForm.addEventListener("submit", async function(e) {
   e.preventDefault();
@@ -369,18 +225,47 @@ coordinadorForm.addEventListener("submit", async function(e) {
   const submit = document.querySelector("#coordinadorForm .submit");
   const nombre = document.getElementById("coordinadorNombre").value.trim();
   const acreditadoPor = document.getElementById("acreditadoPor").value.trim();
+  const totalArepas = Number(document.getElementById("coord-arepas-total").value || 1);
+  const seleccion = obtenerSeleccionSaboresCoordinador();
 
   if (!nombre) return mostrarModal("Selecciona un coordinador.");
   if (!acreditadoPor) return mostrarModal("Falta el nombre de quien acredita.");
+
+  if (Number(stockSabores["Coordinadores"] || 0) <= 0) {
+    return mostrarModal("Ya no quedan beneficios para coordinadores.");
+  }
+
+  if (seleccion.total !== totalArepas) {
+    return mostrarModal(`Debes seleccionar ${totalArepas} arepa(s). Actualmente seleccionaste ${seleccion.total}.`);
+  }
+
+  for (const item of seleccion.lista) {
+    const disponible = Number(stockSabores[item.sabor] || 0);
+    if (item.cantidad > disponible) {
+      return mostrarModal(`No hay suficiente stock de ${item.sabor}. Disponible: ${disponible}.`);
+    }
+  }
 
   try {
     submit.disabled = true;
     submit.textContent = "Acreditando...";
 
+    const resumenSabores = seleccion.lista
+      .map(item => `${item.sabor} x${item.cantidad}`)
+      .join(", ");
+
     const datos = new URLSearchParams();
     datos.append("action", "acreditar_coordinador");
     datos.append("nombre", nombre);
     datos.append("acreditado_por", acreditadoPor);
+    datos.append("cantidad_arepas", totalArepas);
+    datos.append("sabor", seleccion.lista[0]?.sabor || "");
+    datos.append("sabores", resumenSabores);
+    datos.append("catira", seleccion.detalle["Catira"] || 0);
+    datos.append("pelua", seleccion.detalle["Pelúa"] || 0);
+    datos.append("reina", seleccion.detalle["Reina Pepiada"] || 0);
+    datos.append("rumbera", seleccion.detalle["Rumbera"] || 0);
+    datos.append("akuai", seleccion.detalle["Akuai"] || 0);
 
     const res = await fetch(WEB_APP_URL, {
       method: "POST",
@@ -391,11 +276,15 @@ coordinadorForm.addEventListener("submit", async function(e) {
 
     if (!data.ok) throw new Error(data.error || "No se pudo acreditar.");
 
-    mostrarModal(`${nombre} acreditado correctamente.`, "Acreditación lista");
+    mostrarModal(`${nombre} acreditado correctamente.\nArepas: ${resumenSabores}`, "Acreditación lista");
 
     document.getElementById("coordinadorNombre").value = "";
+    document.getElementById("coord-arepas-total").value = 1;
+    resetSaboresCoordinador();
+
     await cargarStock();
     await cargarCoordinadoresDisponibles();
+    actualizarResumenCoordinador();
 
   } catch (error) {
     mostrarModal(error.message, "No se pudo acreditar");
@@ -406,9 +295,8 @@ coordinadorForm.addEventListener("submit", async function(e) {
 });
 
 window.addEventListener("load", async () => {
-  renderSabores();
+  renderSaboresCoordinador();
   await cargarStock();
-  await cargarTasa();
   await cargarCoordinadoresDisponibles();
 
   setInterval(cargarStock, 15000);

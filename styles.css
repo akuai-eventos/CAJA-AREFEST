@@ -24,7 +24,7 @@ body {
 }
 
 .app {
-  width: min(920px, 100%);
+  width: min(720px, 100%);
   margin: 0 auto;
   padding: 18px;
 }
@@ -99,32 +99,9 @@ select:focus {
   display: none !important;
 }
 
-.tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 10px 0 18px;
-}
-
-.tab-btn {
-  border: 1px solid rgba(224,122,31,.25);
-  background: #fff8f1;
-  color: var(--orange-dark);
-  padding: 13px;
-  border-radius: 16px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(224,122,31,.22);
-}
-
 .stock-box {
-  background: #fff4ea;
-  border: 1px solid rgba(224,122,31,.25);
+  background: #f0fff6;
+  border: 1px solid rgba(31,157,85,.25);
   padding: 14px;
   border-radius: 16px;
   display: flex;
@@ -133,9 +110,10 @@ select:focus {
   margin-bottom: 18px;
 }
 
-.coordinator-stock {
-  background: #f0fff6;
-  border-color: rgba(31,157,85,.25);
+.hint {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .qty {
@@ -161,12 +139,6 @@ select:focus {
   text-align: center;
   font-weight: 900;
   max-width: 110px;
-}
-
-.hint {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.4;
 }
 
 .flavor-row {
@@ -200,41 +172,6 @@ select:focus {
   font-weight: 900;
 }
 
-.total-box {
-  margin: 24px 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.total-box div {
-  padding: 16px;
-  border-radius: 16px;
-  background: #fafafa;
-  border: 1px solid var(--line);
-}
-
-.total-box span {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-.total-box strong {
-  font-size: 30px;
-  line-height: 1.1;
-}
-
-.total-box strong span {
-  font-size: 30px;
-  font-weight: 900;
-}
-
-.total-box div > span {
-  font-size: 14px;
-}
-
 .benefit-box {
   margin: 20px 0 24px;
   padding: 18px;
@@ -259,15 +196,11 @@ select:focus {
   border: none;
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--green), #157a3d);
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
   color: white;
   font-size: 17px;
   font-weight: 900;
   cursor: pointer;
-}
-
-.coordinator-submit {
-  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
 }
 
 .submit:disabled {
@@ -318,16 +251,8 @@ select:focus {
     font-size: 24px;
   }
 
-  .tabs {
-    grid-template-columns: 1fr;
-  }
-
   .stock-box {
     flex-direction: column;
-  }
-
-  .total-box {
-    grid-template-columns: 1fr;
   }
 
   .flavor-row {
