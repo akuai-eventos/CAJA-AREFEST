@@ -223,9 +223,6 @@ coordinadorForm.addEventListener("submit", async function(e) {
   if (!nombre) return mostrarModal("Selecciona un coordinador.");
   if (!acreditadoPor) return mostrarModal("Falta el nombre de quien acredita.");
 
-  if (Number(stockSabores["Coordinadores"] || 0) <= 0) {
-    return mostrarModal("Ya no quedan coordinadores por acreditar.");
-  }
 
   if (seleccion.total !== totalArepas) {
     return mostrarModal(`Debes seleccionar ${totalArepas} arepa(s). Actualmente seleccionaste ${seleccion.total}.`);
