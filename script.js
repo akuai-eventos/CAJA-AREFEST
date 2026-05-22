@@ -83,7 +83,6 @@ async function cargarStock() {
       "Coordinadores": Number(data.stock["Coordinadores"] || 0)
     };
 
-    setText("stock-coordinadores", `${stockSabores["Coordinadores"]} disponibles`);
     renderSaboresCoordinador();
     actualizarResumenCoordinador();
 
@@ -206,13 +205,6 @@ function actualizarResumenCoordinador() {
 
   setText("saboresCoordResumen", `Has seleccionado ${seleccion.total} de ${totalArepas} arepa(s).`);
 
-  const resumen = seleccion.lista.length
-    ? seleccion.lista.map(item => `${item.sabor} x${item.cantidad}`).join(", ")
-    : "arepa a elección";
-
-  const adicional = totalArepas === 2 ? " + 1 arepa adicional" : "";
-  setText("beneficioTexto", `${totalArepas} arepa(s): ${resumen}${adicional} + Café x1 + Papelón con Limón x1`);
-
   const resumenEl = document.getElementById("saboresCoordResumen");
   if (resumenEl) {
     resumenEl.style.color = seleccion.total === totalArepas ? "#1f9d55" : "#777";
@@ -232,7 +224,7 @@ coordinadorForm.addEventListener("submit", async function(e) {
   if (!acreditadoPor) return mostrarModal("Falta el nombre de quien acredita.");
 
   if (Number(stockSabores["Coordinadores"] || 0) <= 0) {
-    return mostrarModal("Ya no quedan beneficios para coordinadores.");
+    return mostrarModal("Ya no quedan coordinadores por acreditar.");
   }
 
   if (seleccion.total !== totalArepas) {
@@ -261,6 +253,7 @@ coordinadorForm.addEventListener("submit", async function(e) {
     datos.append("cantidad_arepas", totalArepas);
     datos.append("sabor", seleccion.lista[0]?.sabor || "");
     datos.append("sabores", resumenSabores);
+    datos.append("domino", seleccion.detalle["Dominó"] || 0);
     datos.append("catira", seleccion.detalle["Catira"] || 0);
     datos.append("pelua", seleccion.detalle["Pelúa"] || 0);
     datos.append("reina", seleccion.detalle["Reina Pepiada"] || 0);
